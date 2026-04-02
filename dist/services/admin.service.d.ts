@@ -1,7 +1,18 @@
 import type { ListingStatus, UserStatus } from "../types/models.js";
 interface AdminListingQuery {
+    page: number;
+    limit: number;
     status: "all" | ListingStatus;
     search?: string | undefined;
+}
+interface PaginatedResult<T> {
+    items: T[];
+    pagination: {
+        page: number;
+        limit: number;
+        totalItems: number;
+        totalPages: number;
+    };
 }
 export interface AdminListing {
     id: number;
@@ -10,11 +21,17 @@ export interface AdminListing {
     email: string;
     phone: string;
     location: string;
+    exactAddress: string;
+    description: string;
     price: number;
+    beds: number;
+    baths: number;
+    area: number;
     status: ListingStatus;
     date: string;
     type: string;
     image: string;
+    images: string[];
 }
 export interface AdminUserView {
     id: number;
@@ -26,7 +43,7 @@ export interface AdminUserView {
     status: string;
     joinDate: string;
 }
-export declare const listAdminListings: (query: AdminListingQuery) => Promise<AdminListing[]>;
+export declare const listAdminListings: (query: AdminListingQuery) => Promise<PaginatedResult<AdminListing>>;
 export declare const updateListingStatus: (id: number, status: ListingStatus) => Promise<AdminListing>;
 export declare const deleteListing: (id: number) => Promise<void>;
 export declare const getAdminStats: () => Promise<{

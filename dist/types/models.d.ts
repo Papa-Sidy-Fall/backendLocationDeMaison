@@ -13,6 +13,7 @@ export interface Property {
     title: string;
     description: string;
     location: string;
+    exactAddress: string;
     quartier: string;
     city: string;
     price: number;
@@ -68,6 +69,7 @@ export interface PublishPropertyInput {
     imageUrls: string[];
     price: number;
     location: string;
+    exactAddress: string;
     quartier: string;
     bedrooms: number;
     bathrooms: number;

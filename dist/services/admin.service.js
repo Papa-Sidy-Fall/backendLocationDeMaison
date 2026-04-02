@@ -5,7 +5,13 @@ import { formatDateOnly, normalizeText } from "../utils/helpers.js";
 import { resolvePublicAssetUrl } from "../utils/media.js";
 import { fromDbListingStatus, fromDbUserRole, fromDbUserStatus, toDbListingStatus, toDbUserStatus, } from "../utils/prisma-mappers.js";
 const toAdminListing = (property) => {
-    const firstImage = Array.isArray(property.images) ? property.images[0] : "";
+    const images = Array.isArray(property.images)
+        ? property.images
+            .filter((image) => typeof image === "string")
+            .map((image) => resolvePublicAssetUrl(image))
+            .filter((image) => image.length > 0)
+        : [];
+    const firstImage = images[0] ?? "";
     return {
         id: property.id,
         title: property.title,
@@ -13,11 +19,17 @@ const toAdminListing = (property) => {
         email: property.ownerEmail,
         phone: property.ownerPhone,
         location: property.location,
+        exactAddress: property.exactAddress,
+        description: property.description,
         price: property.price,
+        beds: property.beds,
+        baths: property.baths,
+        area: property.area,
         status: fromDbListingStatus(property.status),
         date: formatDateOnly(property.createdAt),
         type: property.type,
-        image: typeof firstImage === "string" ? resolvePublicAssetUrl(firstImage) : "",
+        image: firstImage,
+        images,
     };
 };
 const toAdminRoleLabel = (role) => fromDbUserRole(role) === "admin" ? "Administrateur" : "Proprietaire";
@@ -71,19 +83,37 @@ export const listAdminListings = async (query) => {
                 },
             },
             {
+                exactAddress: {
+                    contains: query.search,
+                },
+            },
+            {
                 type: {
                     contains: query.search,
                 },
             },
         ];
     }
+    const totalItems = await prisma.property.count({ where });
+    const totalPages = Math.max(1, Math.ceil(totalItems / query.limit));
+    const page = Math.min(query.page, totalPages);
     const listings = await prisma.property.findMany({
         where,
         orderBy: {
             createdAt: "desc",
         },
+        skip: (page - 1) * query.limit,
+        take: query.limit,
     });
-    return listings.map(toAdminListing);
+    return {
+        items: listings.map(toAdminListing),
+        pagination: {
+            page,
+            limit: query.limit,
+            totalItems,
+            totalPages,
+        },
+    };
 };
 export const updateListingStatus = async (id, status) => {
     try {

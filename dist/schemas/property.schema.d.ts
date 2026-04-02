@@ -5,11 +5,13 @@ export declare const publishPropertySchema: z.ZodObject<{
     description: z.ZodDefault<z.ZodOptional<z.ZodString>>;
     price: z.ZodCoercedNumber<unknown>;
     location: z.ZodString;
-    quartier: z.ZodDefault<z.ZodOptional<z.ZodString>>;
+    exactAddress: z.ZodString;
+    quartier: z.ZodString;
     bedrooms: z.ZodDefault<z.ZodOptional<z.ZodCoercedNumber<unknown>>>;
     bathrooms: z.ZodDefault<z.ZodOptional<z.ZodCoercedNumber<unknown>>>;
     area: z.ZodDefault<z.ZodOptional<z.ZodCoercedNumber<unknown>>>;
     features: z.ZodPipe<z.ZodUnion<readonly [z.ZodArray<z.ZodString>, z.ZodString, z.ZodUndefined]>, z.ZodTransform<string[], string | string[] | undefined>>;
+    imageUrls: z.ZodPipe<z.ZodUnion<readonly [z.ZodArray<z.ZodString>, z.ZodString, z.ZodUndefined]>, z.ZodTransform<string[], string | string[] | undefined>>;
 }, z.core.$strip>;
 export declare const propertyIdParamSchema: z.ZodObject<{
     id: z.ZodCoercedNumber<unknown>;

@@ -93,6 +93,7 @@ export const toPropertyResponse = (property: DbProperty): Property => ({
   title: property.title,
   description: property.description,
   location: property.location,
+  exactAddress: property.exactAddress,
   quartier: property.quartier,
   city: property.city,
   price: property.price,

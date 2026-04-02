@@ -61,4 +61,17 @@ export const getUploadedPropertyImagePaths = (req) => {
         .map((file) => toStoredPropertyImagePath(file.filename))
         .filter((value) => value.trim().length > 0);
 };
+export const deleteUploadedPropertyImages = (req) => {
+    if (!Array.isArray(req.files)) {
+        return;
+    }
+    for (const file of req.files) {
+        try {
+            fs.unlinkSync(file.path);
+        }
+        catch {
+            // Ignore cleanup failures to preserve the original request error.
+        }
+    }
+};
 //# sourceMappingURL=upload.js.map

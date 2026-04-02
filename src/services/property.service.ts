@@ -92,6 +92,16 @@ const parsePriceRange = (range?: string): { gte?: number; lte?: number } => {
   };
 };
 
+const getResolvedPropertyLocation = (property: { exactAddress: string; location: string }): string => {
+  const exactAddress = property.exactAddress.trim();
+
+  if (exactAddress.length > 0) {
+    return exactAddress;
+  }
+
+  return property.location;
+};
+
 const getInactiveOwnerEmails = async (): Promise<string[]> => {
   const inactiveUsers = await prisma.user.findMany({
     where: {
@@ -227,6 +237,11 @@ const buildPropertyWhere = (query: PropertyListQuery, inactiveOwnerEmails: strin
         },
         {
           location: {
+            contains: query.search,
+          },
+        },
+        {
+          exactAddress: {
             contains: query.search,
           },
         },
@@ -449,9 +464,10 @@ export const publishProperty = async (input: PublishPropertyInput): Promise<Prop
         input.description.length > 0
           ? input.description
           : `${input.title} situe a ${input.location}. Annonce publiee en attente de validation administrateur.`,
-      quartier: input.quartier.length > 0 ? input.quartier : input.location,
+      quartier: input.quartier,
       city: "Dakar",
       location: input.location,
+      exactAddress: input.exactAddress,
       price: input.price,
       beds: input.bedrooms,
       baths: input.bathrooms,
@@ -490,7 +506,7 @@ export const createVisitRequest = async (input: VisitRequestInput): Promise<Visi
     data: {
       propertyId: property.id,
       propertyTitle: property.title,
-      location: input.location && input.location.length > 0 ? input.location : property.location,
+      location: input.location && input.location.length > 0 ? input.location : getResolvedPropertyLocation(property),
       name: input.name,
       email: input.email,
       phone: input.phone,
@@ -511,7 +527,7 @@ export const createContactMessage = async (input: ContactMessageInput): Promise<
     data: {
       propertyId: property.id,
       propertyTitle: property.title,
-      location: input.location && input.location.length > 0 ? input.location : property.location,
+      location: input.location && input.location.length > 0 ? input.location : getResolvedPropertyLocation(property),
       name: input.name,
       email: input.email,
       phone: input.phone,

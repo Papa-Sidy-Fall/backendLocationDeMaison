@@ -52,6 +52,7 @@ model Property {
   title         String
   description   String          @db.Text
   location      String
+  exactAddress  String          @default("")
   quartier      String
   city          String          @default("Dakar")
   price         Int

@@ -1,7 +1,11 @@
 import { Router } from "express";
 import { z } from "zod";
 import { getAuthContext, requireAuth } from "../middlewares/auth.js";
-import { getUploadedPropertyImagePaths, uploadPropertyImages } from "../middlewares/upload.js";
+import {
+  deleteUploadedPropertyImages,
+  getUploadedPropertyImagePaths,
+  uploadPropertyImages,
+} from "../middlewares/upload.js";
 import { propertyIdParamSchema, propertyQuerySchema, publishPropertySchema } from "../schemas/property.schema.js";
 import { AppError } from "../utils/app-error.js";
 import {
@@ -49,33 +53,45 @@ propertyRouter.get("/:id/similar", async (req, res) => {
   });
 });
 
-propertyRouter.post("/", requireAuth, uploadPropertyImages, async (req, res) => {
+propertyRouter.post("/", requireAuth, uploadPropertyImages, async (req, res, next) => {
   const authContext = getAuthContext(res);
-  const imagePaths = getUploadedPropertyImagePaths(req);
 
-  if (imagePaths.length < 1) {
-    throw new AppError("At least one image is required", 400);
+  try {
+    const payload = publishPropertySchema.parse(req.body);
+    const uploadedImagePaths = getUploadedPropertyImagePaths(req);
+    const allImageUrls = [...payload.imageUrls, ...uploadedImagePaths];
+
+    if (allImageUrls.length < 1) {
+      throw new AppError("At least one image is required", 400);
+    }
+
+    if (allImageUrls.length > 5) {
+      throw new AppError("You can upload a maximum of 5 images", 400);
+    }
+
+    const property = await publishProperty({
+      propertyType: payload.propertyType,
+      title: payload.title,
+      description: payload.description,
+      imageUrls: allImageUrls,
+      price: payload.price,
+      location: payload.location,
+      exactAddress: payload.exactAddress,
+      quartier: payload.quartier,
+      bedrooms: payload.bedrooms,
+      bathrooms: payload.bathrooms,
+      area: payload.area,
+      ownerEmail: authContext.email,
+      features: payload.features,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Property published and pending approval",
+      data: property,
+    });
+  } catch (error) {
+    deleteUploadedPropertyImages(req);
+    next(error);
   }
-
-  const payload = publishPropertySchema.parse(req.body);
-  const property = await publishProperty({
-    propertyType: payload.propertyType,
-    title: payload.title,
-    description: payload.description,
-    imageUrls: imagePaths,
-    price: payload.price,
-    location: payload.location,
-    quartier: payload.quartier,
-    bedrooms: payload.bedrooms,
-    bathrooms: payload.bathrooms,
-    area: payload.area,
-    ownerEmail: authContext.email,
-    features: payload.features,
-  });
-
-  res.status(201).json({
-    success: true,
-    message: "Property published and pending approval",
-    data: property,
-  });
 });

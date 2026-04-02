@@ -13,8 +13,20 @@ import {
 } from "../utils/prisma-mappers.js";
 
 interface AdminListingQuery {
+  page: number;
+  limit: number;
   status: "all" | ListingStatus;
   search?: string | undefined;
+}
+
+interface PaginatedResult<T> {
+  items: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+  };
 }
 
 export interface AdminListing {
@@ -24,11 +36,17 @@ export interface AdminListing {
   email: string;
   phone: string;
   location: string;
+  exactAddress: string;
+  description: string;
   price: number;
+  beds: number;
+  baths: number;
+  area: number;
   status: ListingStatus;
   date: string;
   type: string;
   image: string;
+  images: string[];
 }
 
 export interface AdminUserView {
@@ -49,13 +67,24 @@ const toAdminListing = (property: {
   ownerEmail: string;
   ownerPhone: string;
   location: string;
+  exactAddress: string;
+  description: string;
   price: number;
+  beds: number;
+  baths: number;
+  area: number;
   status: "PENDING" | "APPROVED" | "REJECTED";
   createdAt: Date;
   type: string;
   images: unknown;
 }): AdminListing => {
-  const firstImage = Array.isArray(property.images) ? property.images[0] : "";
+  const images = Array.isArray(property.images)
+    ? property.images
+        .filter((image): image is string => typeof image === "string")
+        .map((image) => resolvePublicAssetUrl(image))
+        .filter((image) => image.length > 0)
+    : [];
+  const firstImage = images[0] ?? "";
 
   return {
     id: property.id,
@@ -64,11 +93,17 @@ const toAdminListing = (property: {
     email: property.ownerEmail,
     phone: property.ownerPhone,
     location: property.location,
+    exactAddress: property.exactAddress,
+    description: property.description,
     price: property.price,
+    beds: property.beds,
+    baths: property.baths,
+    area: property.area,
     status: fromDbListingStatus(property.status),
     date: formatDateOnly(property.createdAt),
     type: property.type,
-    image: typeof firstImage === "string" ? resolvePublicAssetUrl(firstImage) : "",
+    image: firstImage,
+    images,
   };
 };
 
@@ -119,7 +154,7 @@ const getManageableUser = async (userId: number, actorAdminId: number) => {
   return user;
 };
 
-export const listAdminListings = async (query: AdminListingQuery): Promise<AdminListing[]> => {
+export const listAdminListings = async (query: AdminListingQuery): Promise<PaginatedResult<AdminListing>> => {
   const where: Prisma.PropertyWhereInput = {};
 
   if (query.status !== "all") {
@@ -144,6 +179,11 @@ export const listAdminListings = async (query: AdminListingQuery): Promise<Admin
         },
       },
       {
+        exactAddress: {
+          contains: query.search,
+        },
+      },
+      {
         type: {
           contains: query.search,
         },
@@ -151,14 +191,28 @@ export const listAdminListings = async (query: AdminListingQuery): Promise<Admin
     ];
   }
 
+  const totalItems = await prisma.property.count({ where });
+  const totalPages = Math.max(1, Math.ceil(totalItems / query.limit));
+  const page = Math.min(query.page, totalPages);
+
   const listings = await prisma.property.findMany({
     where,
     orderBy: {
       createdAt: "desc",
     },
+    skip: (page - 1) * query.limit,
+    take: query.limit,
   });
 
-  return listings.map(toAdminListing);
+  return {
+    items: listings.map(toAdminListing),
+    pagination: {
+      page,
+      limit: query.limit,
+      totalItems,
+      totalPages,
+    },
+  };
 };
 
 export const updateListingStatus = async (id: number, status: ListingStatus): Promise<AdminListing> => {

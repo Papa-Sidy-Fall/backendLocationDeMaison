@@ -1,5 +1,7 @@
 import { z } from "zod";
 export declare const adminListingQuerySchema: z.ZodObject<{
+    page: z.ZodDefault<z.ZodOptional<z.ZodCoercedNumber<unknown>>>;
+    limit: z.ZodDefault<z.ZodOptional<z.ZodCoercedNumber<unknown>>>;
     status: z.ZodDefault<z.ZodOptional<z.ZodEnum<{
         pending: "pending";
         approved: "approved";
