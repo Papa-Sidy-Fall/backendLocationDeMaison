@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum ListingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum VisitStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+model User {
+  id           Int        @id @default(autoincrement())
+  fullName     String
+  email        String     @unique
+  phone        String
+  passwordHash String
+  role         UserRole   @default(USER)
+  status       UserStatus @default(ACTIVE)
+  joinDate     DateTime   @default(now())
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Property {
+  id            Int             @id @default(autoincrement())
+  title         String
+  description   String          @db.Text
+  location      String
+  quartier      String
+  city          String          @default("Dakar")
+  price         Int
+  beds          Int             @default(0)
+  baths         Int             @default(0)
+  area          Int             @default(0)
+  type          String
+  images        Json
+  features      Json
+  ownerName     String
+  ownerEmail    String
+  ownerPhone    String
+  ownerAvatar   String
+  status        ListingStatus   @default(PENDING)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  visitRequests VisitRequest[]
+  messages      ContactMessage[]
+}
+
+model VisitRequest {
+  id            Int        @id @default(autoincrement())
+  property       Property   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId     Int
+  propertyTitle  String
+  location       String
+  name           String
+  email          String
+  phone          String
+  date           DateTime
+  time           String
+  message        String     @db.Text
+  status         VisitStatus @default(PENDING)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+model ContactMessage {
+  id            Int      @id @default(autoincrement())
+  property      Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId    Int
+  propertyTitle String
+  location      String
+  name          String
+  email         String
+  phone         String
+  message       String   @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
